@@ -2,7 +2,7 @@ name: Daily Naukri Profile Update
 
 on:
   schedule:
-    - cron: '0 1 * * *' # Every day at 1 AM UTC (~6:30 AM IST)
+    - cron: '0 1 * * *'  # every day at 1 AM UTC
   workflow_dispatch:
 
 jobs:
@@ -18,11 +18,17 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
+      - name: Install Chrome and dependencies
         run: |
-          pip install selenium
           sudo apt-get update
-          sudo apt-get install -y chromium-browser chromium-chromedriver
+          sudo apt-get install -y wget unzip
+          wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt install -y ./google-chrome-stable_current_amd64.deb
+          sudo apt-get install -y chromium-chromedriver
+          sudo ln -s /usr/lib/chromium-browser/chromedriver /usr/bin/chromedriver
+
+      - name: Install Python dependencies
+        run: pip install selenium
 
       - name: Upload Resume
         env:
@@ -30,9 +36,3 @@ jobs:
           NAUKRI_PASSWORD: ${{ secrets.NAUKRI_PASSWORD }}
           RESUME_FILE: ${{ github.workspace }}/resume.pdf
         run: python naukri_update.py
-
-      - name: Upload resume file (artifact)
-        uses: actions/upload-artifact@v4
-        with:
-          name: resume
-          path: resume.pdf
