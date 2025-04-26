@@ -1,28 +1,37 @@
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-import os
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import time
 
-options = Options()
-options.add_argument('--headless')
-options.add_argument('--no-sandbox')
-options.add_argument('--disable-dev-shm-usage')
+# Your Naukri credentials
+email = "saicsk222@gmail.com"
+password = "Saichukka@123"
 
+# Start Chrome in headless mode
+options = webdriver.ChromeOptions()
+options.add_argument("--headless=new")
+options.add_argument("--no-sandbox")
+options.add_argument("--disable-dev-shm-usage")
 driver = webdriver.Chrome(options=options)
 
-email = os.getenv("EMAIL")
-password = os.getenv("PASSWORD")
+# Open Naukri login page
+driver.get("https://www.naukri.com/nlogin/login")
 
-driver.get('https://www.naukri.com/nlogin/login')
+# Wait until Email field is present
+wait = WebDriverWait(driver, 20)
+wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "input[placeholder='Enter Email ID / Username']")))
 
-time.sleep(2)
+# Fill in the login form
+driver.find_element(By.CSS_SELECTOR, "input[placeholder='Enter Email ID / Username']").send_keys(email)
+driver.find_element(By.CSS_SELECTOR, "input[placeholder='Enter Password']").send_keys(password)
 
-driver.find_element("id", "usernameField").send_keys(email)
-driver.find_element("id", "passwordField").send_keys(password)
-driver.find_element("xpath", "//button[@type='submit']").click()
+# Click Login button
+driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
 
+# Wait for few seconds to ensure login is complete
 time.sleep(5)
 
-# ...your code here...
-
+# Close the browser
 driver.quit()
+
