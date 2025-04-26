@@ -1,43 +1,47 @@
-name: Naukri Resume Update
+name: Naukri Profile Updater
 
 on:
   workflow_dispatch:
 
 jobs:
-  update-resume:
+  update-profile:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      - name: Install Google Chrome
-        run: |
-          sudo apt-get update
-          wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-          sudo apt install -y ./google-chrome-stable_current_amd64.deb
-
-      - name: Install ChromeDriver matching Chrome version
-        run: |
-          CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d '.' -f 1)
-          wget -O chromedriver.zip https://storage.googleapis.com/chrome-for-testing-public/${CHROME_VERSION}.0.0/linux64/chromedriver-linux64.zip
-          unzip chromedriver.zip
-          sudo mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver
-          sudo chmod +x /usr/local/bin/chromedriver
-
-      - name: Install Python dependencies
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install selenium
 
-      - name: Run the script
-        env:
-          EMAIL: ${{ secrets.NAUKRI_EMAIL }}
-          PASSWORD: ${{ secrets.NAUKRI_PASSWORD }}
+      - name: Install Google Chrome
         run: |
-          python naukri_update.py
+          wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt install -y ./google-chrome-stable_current_amd64.deb
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Install ChromeDriver matching Chrome version
+        run: |
+          CHROME_VERSION=$(google-chrome --version | awk '{print $3}')
+          echo "Installed Chrome version: $CHROME_VERSION"
+
+          CHROMEDRIVER_VERSION=$(curl -s "https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json" | jq -r --arg v "$CHROME_VERSION" '.versions[] | select(.version | startswith($v)) | .version' | head -n 1)
+          echo "Matching ChromeDriver version: $CHROMEDRIVER_VERSION"
+
+          wget -O chromedriver.zip "https://storage.googleapis.com/chrome-for-testing-public/${CHROMEDRIVER_VERSION}/linux64/chromedriver-linux64.zip"
+
+          unzip chromedriver.zip
+          sudo mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver
+          sudo chmod +x /usr/local/bin/chromedriver
+
+      - name: Run the script
+        run: python naukri_update.py
