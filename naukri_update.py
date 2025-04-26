@@ -1,51 +1,28 @@
-# naukri_update.py
-
 from selenium import webdriver
-from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
-import time
 import os
+import time
 
-# Fetch credentials and resume path from environment variables
-USERNAME = os.environ['NAUKRI_USERNAME']
-PASSWORD = os.environ['NAUKRI_PASSWORD']
-RESUME_FILE = os.environ['RESUME_FILE']  # Full path to resume file
+options = Options()
+options.add_argument('--headless')
+options.add_argument('--no-sandbox')
+options.add_argument('--disable-dev-shm-usage')
 
-# Setup Chrome options
-chrome_options = Options()
-chrome_options.add_argument("--headless")
-chrome_options.add_argument("--no-sandbox")
-chrome_options.add_argument("--disable-dev-shm-usage")
+driver = webdriver.Chrome(options=options)
 
-# Start WebDriver
-driver = webdriver.Chrome(options=chrome_options)
+email = os.getenv("EMAIL")
+password = os.getenv("PASSWORD")
 
-try:
-    driver.get("https://www.naukri.com/mnjuser/homepage")
-    time.sleep(5)
+driver.get('https://www.naukri.com/nlogin/login')
 
-    # Click Login
-    login_button = driver.find_element(By.LINK_TEXT, "Login")
-    login_button.click()
-    time.sleep(3)
+time.sleep(2)
 
-    # Enter credentials
-    driver.find_element(By.NAME, "usernameField").send_keys(USERNAME)
-    driver.find_element(By.NAME, "passwordField").send_keys(PASSWORD)
-    driver.find_element(By.XPATH, "//button[contains(text(),'Login')]").click()
-    time.sleep(8)
+driver.find_element("id", "usernameField").send_keys(email)
+driver.find_element("id", "passwordField").send_keys(password)
+driver.find_element("xpath", "//button[@type='submit']").click()
 
-    print("Logged in successfully.")
+time.sleep(5)
 
-    # Find the Resume Upload button
-    upload_resume_button = driver.find_element(By.XPATH, "//input[@type='file' and contains(@name, 'resumeUpload')]")
-    
-    # Upload the resume
-    upload_resume_button.send_keys(RESUME_FILE)
-    print("Resume uploaded successfully.")
+# ...your code here...
 
-    # Wait for upload to finish
-    time.sleep(10)
-
-finally:
-    driver.quit()
+driver.quit()
