@@ -11,7 +11,8 @@ password = "Saichukka@123"
 
 # Start Chrome with more options
 options = webdriver.ChromeOptions()
-options.add_argument("--headless=new")
+# Temporarily disable headless mode if debugging
+# options.add_argument("--headless=new")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 options.add_argument("--window-size=1920,1080")
@@ -23,15 +24,15 @@ driver = webdriver.Chrome(options=options)
 try:
     # Open Naukri login page
     print("Opening Naukri login page...")
-    driver.get("https://www.naukri.com/nlogin/login")
-    
+    driver.get("https://www.naukri.com/nlogin/login?URL=//www.naukri.com/mnjuser/profile")
+
     # Wait for any potential popups and close them
     try:
         WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.CSS_SELECTOR, "button[class*='modal-close']"))).click()
         print("Closed popup if present")
     except TimeoutException:
         pass
-    
+
     # Try multiple possible selectors for email field
     email_selectors = [
         "input[placeholder='Enter Email ID / Username']",
@@ -39,7 +40,7 @@ try:
         "input[id='usernameField']",
         "input[name='email']"
     ]
-    
+
     email_field = None
     for selector in email_selectors:
         try:
@@ -50,41 +51,59 @@ try:
             break
         except TimeoutException:
             continue
-    
+
     if not email_field:
         raise Exception("Could not find email field with any selector")
-    
+
     # Fill in the login form
     email_field.send_keys(email)
     print("Entered email")
-    
+
     password_field = driver.find_element(By.CSS_SELECTOR, "input[placeholder='Enter Password']")
     password_field.send_keys(password)
     print("Entered password")
-    
+
     # Click Login button
     login_button = driver.find_element(By.CSS_SELECTOR, "button[type='submit']")
     login_button.click()
     print("Clicked login button")
-    
-    # Wait for login to complete
+
+    # Wait for login to complete using URL change
+    login_success = False
     try:
-        WebDriverWait(driver, 20).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "div[class*='dashboard']"))
-        )
-        print("Login successful!")
+        WebDriverWait(driver, 15).until(EC.url_contains("mnjuser/profile"))
+        print("Login successful! Redirected to profile.")
+        login_success = True
     except TimeoutException:
-        print("Login verification failed - may still have logged in")
-    
-    # Add your profile update logic here
-    
+        print("URL did not change, checking fallback element...")
+
+    # Fallback: Check for profile drawer (top right menu)
+    if not login_success:
+        try:
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "div.nI-gNb-drawer"))
+            )
+            print("Login probably successful - profile menu found.")
+            login_success = True
+        except TimeoutException:
+            print("Login verification failed - still on login page.")
+
+    # Debug info
+    print("Current URL:", driver.current_url)
+    print("Page Title:", driver.title)
+
+    # Save screenshot after login
+    screenshot_name = "post_login_success.png" if login_success else "post_login_fail.png"
+    driver.save_screenshot(screenshot_name)
+    print(f"Screenshot saved as {screenshot_name}")
+
+    # 👉 TODO: Add your profile update/resume upload logic here
+
 except Exception as e:
     print(f"An error occurred: {str(e)}")
-    # Take screenshot for debugging
     driver.save_screenshot("error.png")
     print("Screenshot saved as error.png")
-    
+
 finally:
-    # Close the browser
     driver.quit()
     print("Browser closed")
