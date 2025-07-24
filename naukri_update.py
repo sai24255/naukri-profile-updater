@@ -3,7 +3,9 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
-import time
+import tempfile
+import shutil
+import os
 
 # Your Naukri credentials
 email = "saicsk222@gmail.com"
@@ -11,29 +13,34 @@ password = "Saichukka@123"
 
 # Start Chrome with more options
 options = webdriver.ChromeOptions()
-# Temporarily disable headless mode if debugging
-# options.add_argument("--headless=new")
+options.add_argument("--headless=new")  # Use visible mode for debugging by commenting this line
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
 options.add_argument("--window-size=1920,1080")
 options.add_argument("--disable-blink-features=AutomationControlled")
 options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
 
+# Use unique temp directory to avoid profile conflict
+user_data_dir = tempfile.mkdtemp()
+options.add_argument(f"--user-data-dir={user_data_dir}")
+
+# Initialize Chrome driver
 driver = webdriver.Chrome(options=options)
 
 try:
-    # Open Naukri login page
     print("Opening Naukri login page...")
     driver.get("https://www.naukri.com/nlogin/login?URL=//www.naukri.com/mnjuser/profile")
 
-    # Wait for any potential popups and close them
+    # Close popup if present
     try:
-        WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.CSS_SELECTOR, "button[class*='modal-close']"))).click()
+        WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "button[class*='modal-close']"))
+        ).click()
         print("Closed popup if present")
     except TimeoutException:
         pass
 
-    # Try multiple possible selectors for email field
+    # Locate email input field
     email_selectors = [
         "input[placeholder='Enter Email ID / Username']",
         "input[placeholder='Enter your active Email ID / Username']",
@@ -55,7 +62,6 @@ try:
     if not email_field:
         raise Exception("Could not find email field with any selector")
 
-    # Fill in the login form
     email_field.send_keys(email)
     print("Entered email")
 
@@ -63,12 +69,11 @@ try:
     password_field.send_keys(password)
     print("Entered password")
 
-    # Click Login button
     login_button = driver.find_element(By.CSS_SELECTOR, "button[type='submit']")
     login_button.click()
     print("Clicked login button")
 
-    # Wait for login to complete using URL change
+    # Check for login success via URL or element
     login_success = False
     try:
         WebDriverWait(driver, 15).until(EC.url_contains("mnjuser/profile"))
@@ -77,7 +82,6 @@ try:
     except TimeoutException:
         print("URL did not change, checking fallback element...")
 
-    # Fallback: Check for profile drawer (top right menu)
     if not login_success:
         try:
             WebDriverWait(driver, 10).until(
@@ -88,11 +92,9 @@ try:
         except TimeoutException:
             print("Login verification failed - still on login page.")
 
-    # Debug info
     print("Current URL:", driver.current_url)
     print("Page Title:", driver.title)
 
-    # Save screenshot after login
     screenshot_name = "post_login_success.png" if login_success else "post_login_fail.png"
     driver.save_screenshot(screenshot_name)
     print(f"Screenshot saved as {screenshot_name}")
@@ -107,3 +109,5 @@ except Exception as e:
 finally:
     driver.quit()
     print("Browser closed")
+    shutil.rmtree(user_data_dir)
+    print("Temporary user data directory deleted")
